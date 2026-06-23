@@ -1,0 +1,4 @@
+<resources>
+    <!-- Pencere/başlangıç teması. Asıl arayüz teması Compose tarafında (ui/theme). -->
+    <style name="Theme.Kwota" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

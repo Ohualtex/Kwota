@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">Kwota</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">Kwota kotanı hesaplamaz</string>
+    <string name="onboarding_body">Mobil veri kullanımını ölçer ve gözüne sokmadan nazikçe hatırlatır. Veriyi kapatmaz, yalnızca uyarır. Çalışması için \"kullanım erişimi\" iznine ihtiyacı var.</string>
+    <string name="onboarding_grant">Kullanım erişimini aç</string>
+
+    <!-- Ana ekran -->
+    <string name="home_session_label">Bu oturumda</string>
+    <string name="home_daily_label">Bugün toplam</string>
+    <string name="home_mobile_on">Mobil veri açık</string>
+    <string name="home_mobile_off">Mobil veri kapalı</string>
+
+    <!-- Ayarlar -->
+    <string name="settings_title">Ayarlar</string>
+    <string name="settings_step_size">Uyarı adımı (MB)</string>
+    <string name="settings_still_on_reminder">\"Hâlâ mobil verideysin\" hatırlatması</string>
+
+    <!-- İzin durumu -->
+    <string name="permission_needed">Kullanım erişimi izni verilmedi. Lütfen ayarlardan aç.</string>
+</resources>

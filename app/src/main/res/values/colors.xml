@@ -1,0 +1,4 @@
+<resources>
+    <!-- Uygulama ikonu arka plan rengi. -->
+    <color name="ic_launcher_background">#0B6E4F</color>
+</resources>
