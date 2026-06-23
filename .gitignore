@@ -1,0 +1,5 @@
+# macOS
+.DS_Store
+
+# Android proje iskeleti kurulunca standart Android .gitignore (build/, .gradle/,
+# local.properties, *.apk, .idea/ vb.) buraya eklenecek.
