@@ -18,6 +18,9 @@ captures/
 .idea/
 *.iml
 
+# VS Code
+.vscode/
+
 # İmza anahtarları (yerelde tutulur, asla commit edilmez)
 *.jks
 *.keystore
