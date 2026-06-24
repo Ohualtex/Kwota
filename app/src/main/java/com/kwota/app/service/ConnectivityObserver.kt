@@ -4,32 +4,50 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
-import android.net.NetworkRequest
+import com.kwota.app.data.SettingsRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
-// Aktif ağın hücresel mi olduğunu NetworkCallback ile dinler (FR-7) ve oturum sınırını tanımlar:
-// hücresel aktif → oturum başlar + expedited kontrol tetiklenir; wi-fi/kapanış → oturum biter.
-class ConnectivityObserver(context: Context) {
-
+// Varsayılan (aktif) ağın hücresel olup olmadığını dinler (FR-7) ve oturum sınırını tanımlar:
+// aktif ağ hücresel → oturum başlar + expedited kontrol; wi-fi'ye geçiş/kopuş → oturum biter.
+class ConnectivityObserver(
+    private val context: Context,
+    private val scope: CoroutineScope,
+) {
     private val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    private val settings = SettingsRepository(context)
+
+    // Gereksiz tekrarları önlemek için son bilinen durum.
+    private var onCellular: Boolean? = null
+
+    private val callback = object : ConnectivityManager.NetworkCallback() {
+        override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
+            updateState(caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR))
+        }
+
+        override fun onLost(network: Network) {
+            updateState(false)
+        }
+    }
+
+    private fun updateState(cellular: Boolean) {
+        if (onCellular == cellular) return
+        onCellular = cellular
+        scope.launch {
+            if (cellular) {
+                settings.startSession(System.currentTimeMillis())
+                MonitorScheduler.enqueueExpedited(context)
+            } else {
+                settings.endSession()
+            }
+        }
+    }
 
     fun start() {
-        val request = NetworkRequest.Builder()
-            .addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR)
-            .build()
-        cm.registerNetworkCallback(request, callback)
+        cm.registerDefaultNetworkCallback(callback)
     }
 
     fun stop() {
         cm.unregisterNetworkCallback(callback)
-    }
-
-    private val callback = object : ConnectivityManager.NetworkCallback() {
-        override fun onAvailable(network: Network) {
-            // TODO: SettingsRepository.startSession(now) + expedited UsageCheckWorker tetikle.
-        }
-
-        override fun onLost(network: Network) {
-            // TODO: SettingsRepository.endSession() (oturum sayacı sıfırlanır).
-        }
     }
 }
