@@ -7,17 +7,30 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kwota.app.R
 import com.kwota.app.ui.theme.KwotaTheme
 
-// Ana ekran iskeleti: oturum tüketimi (birincil) + bugün toplam (ikincil) + mobil veri durumu.
-// Gerçek değerler ileride HomeViewModel'den akacak (FR-9).
 @Composable
-fun HomeScreen(modifier: Modifier = Modifier) {
+fun HomeScreen(
+    modifier: Modifier = Modifier,
+    viewModel: HomeViewModel = viewModel(),
+) {
+    val state by viewModel.state.collectAsState()
+    // Ekran her göründüğünde güncel tüketimi çek.
+    LaunchedEffect(Unit) { viewModel.refresh() }
+    HomeContent(state, modifier)
+}
+
+@Composable
+private fun HomeContent(state: HomeUiState, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -29,22 +42,38 @@ fun HomeScreen(modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.labelLarge,
         )
         Text(
-            text = "— MB",
+            text = formatBytes(state.sessionBytes),
             style = MaterialTheme.typography.displaySmall,
         )
         Text(
-            text = stringResource(R.string.home_daily_label) + ": — MB",
+            text = stringResource(R.string.home_daily_label) + ": " + formatBytes(state.dailyBytes),
             style = MaterialTheme.typography.bodyMedium,
         )
         Text(
-            text = stringResource(R.string.home_mobile_off),
+            text = stringResource(
+                if (state.mobileDataOn) R.string.home_mobile_on else R.string.home_mobile_off,
+            ),
             style = MaterialTheme.typography.bodyMedium,
         )
     }
 }
 
+// Byte → sade "X MB" / "X.X GB" biçimi.
+private fun formatBytes(bytes: Long): String {
+    val mb = bytes / (1024.0 * 1024.0)
+    return if (mb >= 1024) "%.1f GB".format(mb / 1024) else "%.0f MB".format(mb)
+}
+
 @Preview(showBackground = true)
 @Composable
-private fun HomeScreenPreview() {
-    KwotaTheme { HomeScreen() }
+private fun HomeContentPreview() {
+    KwotaTheme {
+        HomeContent(
+            HomeUiState(
+                sessionBytes = 340L * 1024 * 1024,
+                dailyBytes = 1200L * 1024 * 1024,
+                mobileDataOn = true,
+            ),
+        )
+    }
 }
