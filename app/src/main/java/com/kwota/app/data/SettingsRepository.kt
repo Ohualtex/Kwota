@@ -25,6 +25,7 @@ class SettingsRepository(private val context: Context) {
         val LAST_NOTIFIED_STEP = intPreferencesKey("last_notified_step_this_session")
         val STILL_ON_LEVEL = intPreferencesKey("still_on_reminder_level")
         val STILL_ON_RAW_MIN = intPreferencesKey("still_on_reminder_raw_minutes")
+        val STILL_ON_LAST_MILLIS = longPreferencesKey("still_on_last_millis")
     }
 
     // Adım boyutu; okurken alt sınır (100 MB) zorlanır (FR-3).
@@ -50,11 +51,12 @@ class SettingsRepository(private val context: Context) {
         }
     }
 
-    // Oturum biter (wi-fi'ye geçince / veri kapanınca) — sayaç temizlenir.
+    // Oturum biter (wi-fi'ye geçince / veri kapanınca) — sayaç ve FR-8 cooldown'ı temizlenir.
     suspend fun endSession() {
         context.dataStore.edit { prefs ->
             prefs[Keys.SESSION_START_MILLIS] = 0L
             prefs[Keys.LAST_NOTIFIED_STEP] = 0
+            prefs[Keys.STILL_ON_LAST_MILLIS] = 0L
         }
     }
 
@@ -67,13 +69,40 @@ class SettingsRepository(private val context: Context) {
 
     // FR-8 hatırlatma düzeyi (Kapalı/Az/Orta/Sık); varsayılan Orta.
     val reminderLevel: Flow<ReminderLevel> = context.dataStore.data.map { prefs ->
-        val ordinal = prefs[Keys.STILL_ON_LEVEL] ?: ReminderLevel.MID.ordinal
-        ReminderLevel.entries.getOrElse(ordinal) { ReminderLevel.MID }
+        levelOf(prefs[Keys.STILL_ON_LEVEL])
     }
 
     suspend fun setReminderLevel(level: ReminderLevel) {
         context.dataStore.edit { it[Keys.STILL_ON_LEVEL] = level.ordinal }
     }
+
+    // FR-8 gelişmiş: ham dakika override (0 = ayarlı değil, düzey kullanılır).
+    val reminderRawMinutes: Flow<Int> =
+        context.dataStore.data.map { it[Keys.STILL_ON_RAW_MIN] ?: 0 }
+
+    suspend fun setReminderRawMinutes(minutes: Int) {
+        context.dataStore.edit { prefs ->
+            if (minutes > 0) prefs[Keys.STILL_ON_RAW_MIN] = minutes
+            else prefs.remove(Keys.STILL_ON_RAW_MIN)
+        }
+    }
+
+    // Etkin FR-8 aralığı (dakika): ham değer varsa onu, yoksa düzeyi kullanır; null = kapalı.
+    val effectiveReminderMinutes: Flow<Int?> = context.dataStore.data.map { prefs ->
+        val raw = prefs[Keys.STILL_ON_RAW_MIN] ?: 0
+        if (raw > 0) raw else levelOf(prefs[Keys.STILL_ON_LEVEL]).approxMinutes
+    }
+
+    // FR-8 cooldown durumu: son "hâlâ mobil verideysin" bildirimi zamanı (epoch ms).
+    val lastStillOnReminderMillis: Flow<Long> =
+        context.dataStore.data.map { it[Keys.STILL_ON_LAST_MILLIS] ?: 0L }
+
+    suspend fun setLastStillOnReminderMillis(millis: Long) {
+        context.dataStore.edit { it[Keys.STILL_ON_LAST_MILLIS] = millis }
+    }
+
+    private fun levelOf(ordinal: Int?): ReminderLevel =
+        ReminderLevel.entries.getOrElse(ordinal ?: ReminderLevel.MID.ordinal) { ReminderLevel.MID }
 
     companion object {
         const val MIN_STEP_MB = 100
