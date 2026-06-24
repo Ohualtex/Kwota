@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.kwota.app.domain.ReminderLevel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -62,6 +63,16 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setLastNotifiedStep(step: Int) {
         context.dataStore.edit { it[Keys.LAST_NOTIFIED_STEP] = step }
+    }
+
+    // FR-8 hatırlatma düzeyi (Kapalı/Az/Orta/Sık); varsayılan Orta.
+    val reminderLevel: Flow<ReminderLevel> = context.dataStore.data.map { prefs ->
+        val ordinal = prefs[Keys.STILL_ON_LEVEL] ?: ReminderLevel.MID.ordinal
+        ReminderLevel.entries.getOrElse(ordinal) { ReminderLevel.MID }
+    }
+
+    suspend fun setReminderLevel(level: ReminderLevel) {
+        context.dataStore.edit { it[Keys.STILL_ON_LEVEL] = level.ordinal }
     }
 
     companion object {

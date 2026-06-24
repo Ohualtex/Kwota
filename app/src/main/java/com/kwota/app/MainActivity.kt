@@ -9,11 +9,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.kwota.app.service.UsageAccess
 import com.kwota.app.ui.home.HomeScreen
 import com.kwota.app.ui.onboarding.OnboardingScreen
+import com.kwota.app.ui.settings.SettingsScreen
 import com.kwota.app.ui.theme.KwotaTheme
 
 class MainActivity : ComponentActivity() {
@@ -28,13 +30,20 @@ class MainActivity : ComponentActivity() {
         setContent {
             KwotaTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    if (hasUsageAccess) {
-                        HomeScreen(modifier = Modifier.padding(innerPadding))
-                    } else {
+                    val contentModifier = Modifier.padding(innerPadding)
+                    if (!hasUsageAccess) {
                         OnboardingScreen(
                             onGrantClick = { startActivity(UsageAccess.settingsIntent()) },
-                            modifier = Modifier.padding(innerPadding),
+                            modifier = contentModifier,
                         )
+                    } else {
+                        // Basit gezinme: Home ↔ Settings (ileride Navigation Compose'a taşınabilir).
+                        var showSettings by rememberSaveable { mutableStateOf(false) }
+                        if (showSettings) {
+                            SettingsScreen(onBack = { showSettings = false }, modifier = contentModifier)
+                        } else {
+                            HomeScreen(onSettingsClick = { showSettings = true }, modifier = contentModifier)
+                        }
                     }
                 }
             }
